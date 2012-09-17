@@ -29,7 +29,7 @@ for t = 1, #textures do
 	cubetex[t] = textures[t]..'^rubiks_three.png'
 	textures[t] = textures[t]..'^rubiks_outline.png'
 end
-textures[7] = 'default_stone.png'
+textures[7] = 'default_stone.png^rubiks_outline.png'
 
 minetest.register_craft({
 	type = "shapeless",
@@ -141,28 +141,28 @@ function generate_cubelets()
 	for c = 1, 6 do
 		cubelet = {unpack(blacktex)}
 		cubelet[c] = colors[c]
-		register_cubelet(cubelet)
+		register_cubelet(cubelet, 'center')
 	end
 	--edges
 	for y = 1, -1, -2 do
 	for x = 1, -1, -2 do
 		cubelet = {unpack(blacktex)}
 		cubelet = set_cubelet(cubelet, {x=x, y=y, z=0})
-		register_cubelet(cubelet)
+		register_cubelet(cubelet, 'edge')
 	end
 	end
 	for x = 1, -1, -2 do
 	for z = 1, -1, -2 do
 		cubelet = {unpack(blacktex)}
 		cubelet = set_cubelet(cubelet, {x=x, y=0, z=z})
-		register_cubelet(cubelet)
+		register_cubelet(cubelet, 'edge')
 	end
 	end
 	for y = 1, -1, -2 do
 	for z = 1, -1, -2 do
 		cubelet = {unpack(blacktex)}
 		cubelet = set_cubelet(cubelet, {x=0, y=y, z=z})
-		register_cubelet(cubelet)
+		register_cubelet(cubelet, 'edge')
 	end
 	end
 	--corners
@@ -171,7 +171,7 @@ function generate_cubelets()
 	for z = 1, -1, -2 do
 		cubelet = {unpack(blacktex)}
 		cubelet = set_cubelet(cubelet, {x=x, y=y, z=z})
-		register_cubelet(cubelet)
+		register_cubelet(cubelet, 'corner')
 	end
 	end
 	end
@@ -185,13 +185,29 @@ function get_cubelet_name(cubelet)
 	return name
 end
 
-function register_cubelet(cubelet)
+function register_cubelet(cubelet, piece)
 	name = get_cubelet_name(cubelet)
 	lettex = {}
 	for n = 1, 6 do
 		lettex[n] = color_to_texture(cubelet[n])
 	end
 	print(name)
+
+	if piece == 'center' then
+		on_punch = function(pos, node, puncher)
+			local meta = minetest.env:get_meta(pos)
+			center = minetest.string_to_pos(meta:get_string('cube_center'))
+			if center ~= nil then
+				dir = {x=pos.x-center.x, y=pos.y-center.y, z=pos.z-center.z}
+				rotate_cube(center, dir, true, false)
+			end
+		end
+		--on_rightclick = function(self, clicker)
+		--rotate counterclockwise
+	else
+		on_punch = nil
+	end
+
 	minetest.register_node('rubiks:cubelet_'..name, {
 		description = "Rubik's Cubelet "..name,
 		tiles = lettex,
@@ -206,7 +222,79 @@ function register_cubelet(cubelet)
 			end
 		end,
 		drop = 'rubiks:cube',
+		on_punch = on_punch,
 	})
 end
 generate_cubelets()
-			
+
+function rotate_cube(pos, dir, clockwise, all)
+	print(dump(dir))
+	--save cube to rotate without losing data
+	cube = {}
+	for x = -1, 1 do
+		cube[x] = {}
+	for y = -1, 1 do
+		cube[x][y] = {}
+	for z = -1, 1 do
+		--read absolute position, save relative position
+		pos2 = {x=pos.x+x, y=pos.y+y, z=pos.z+z}
+		cube[x][y][z] = {
+			node = minetest.env:get_node(pos2),
+			meta = minetest.env:get_meta(pos2):to_table()
+		}
+	end
+	end
+	end
+
+	loadpos = {0, 0, 0}
+	axes = {}
+	--what side of the cube will be rotated on what axes
+	if dir.x ~= 0 then
+		loadpos[1] = dir.x
+		axes[1] = 3--z
+		axes[2] = 2--y
+	end
+	if dir.y ~= 0 then
+		loadpos[2] = dir.y
+		axes[1] = 1--x
+		axes[2] = 3--z
+	end
+	if dir.z ~= 0 then
+		loadpos[3] = dir.z
+		axes[1] = 2--y
+		axes[2] = 1--x
+	end
+
+	if dir.x == -1 or dir.y == -1 or dir.z == -1 then
+		clockwise = not clockwise
+		--still clockwise, just from the opposite perspective
+	end
+
+	for firstaxis = -1, 1 do
+	loadpos[axes[1]] = firstaxis
+	for secondaxis = -1, 1 do
+	loadpos[axes[2]] = secondaxis
+		--don't lose data here either
+		writepos = {unpack(loadpos)}
+		--rotate
+		writepos[axes[1]] = loadpos[axes[2]]
+		writepos[axes[2]] = loadpos[axes[1]]
+		if clockwise then
+			writepos[axes[2]] = -writepos[axes[2]]
+		else
+			writepos[axes[1]] = -writepos[axes[1]]
+		end
+		--get absolute position
+		pos2 = {x=pos.x+writepos[1], y=pos.y+writepos[2], z=pos.z+writepos[3]}
+		--write
+		loadcubelet = cube[loadpos[1]][loadpos[2]][loadpos[3]]
+		minetest.env:add_node(pos2, {
+			name = loadcubelet.node.name}
+		)
+		local meta = minetest.env:get_meta(pos2)
+		meta:from_table(loadcubelet.meta)
+
+	end
+	end
+end
+
