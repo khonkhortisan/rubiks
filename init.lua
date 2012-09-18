@@ -258,34 +258,34 @@ function rotate_cube(pos, dir, clockwise, all)
 		loadcubelet = cube[loadpos[1]][loadpos[2]][loadpos[3]]
 		--rotate locally
 		--oldtiles = minetest.registered_nodes[loadcubelet.node.name].tiles
-		wallmounted = string.gsub(loadcubelet.node.name, 'rubiks:cubelet', '')+0
-		oldtiles = {unpack(cubelettiles[wallmounted])}
+		wallmounted = string.gsub(loadcubelet.node.name, 'rubiks:cubelet', '')
+		oldtiles = {unpack(cubelettiles[wallmounted+0])}
 		--print('oldtiles '..dump(oldtiles))
 		--print('oldparam2 '..dump(loadcubelet.node.param2))
 		oldtiles = facedir_to_tiles(oldtiles, loadcubelet.node.param2)
 		--print('newoldtiles '..dump(oldtiles))
 		matchtiles = {
 			--match the side that is spinning
-			dir.y ==  1 and oldtiles[1] or nil,
-			dir.y == -1 and oldtiles[2] or nil,
-			dir.x ==  1 and oldtiles[3] or nil,
-			dir.x == -1 and oldtiles[4] or nil,
-			dir.z ==  1 and oldtiles[5] or nil,
-			dir.z == -1 and oldtiles[6] or nil,
+			dir.y ==  1 and oldtiles[1]..'' or nil,
+			dir.y == -1 and oldtiles[2]..'' or nil,
+			dir.x ==  1 and oldtiles[3]..'' or nil,
+			dir.x == -1 and oldtiles[4]..'' or nil,
+			dir.z ==  1 and oldtiles[5]..'' or nil,
+			dir.z == -1 and oldtiles[6]..'' or nil,
 		}
 		--match the side that is turning
 		--+Y, -Y, +X, -X, +Z, -Z
 		if dir.x ~= 0 then
 			-- +Y = +Z or -Z
-			matchtiles[1] = oldtiles[clockwise and 5 or 6]
+			matchtiles[1] = oldtiles[clockwise and 5 or 6]..''
 		end
 		if dir.y ~= 0 then
 			-- -Z = +X or -X
-			matchtiles[6] = oldtiles[clockwise and 3 or 4]
+			matchtiles[6] = oldtiles[clockwise and 4 or 3]..''
 		end
 		if dir.z ~= 0 then
 			-- -X = +Y or -Y
-			matchtiles[4] = oldtiles[clockwise and 1 or 2]
+			matchtiles[4] = oldtiles[clockwise and 1 or 2]..''
 		end
 
 		print(loadcubelet.node.param2..' '..loadcubelet.node.name)
@@ -306,7 +306,8 @@ function rotate_cube(pos, dir, clockwise, all)
 	print('done rotating')
 end
 
-function facedir_to_tiles(tiles, facedir)
+function facedir_to_tiles(tilestocopy, facedir)
+	tiles = {unpack(tilestocopy)}
 	for f = 0, facedir-1 do
 		--+Y, -Y, +X, -X, +Z, -Z
 		placeholder = tiles[6]
