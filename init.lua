@@ -17,8 +17,6 @@ materials = {
 	'default:sand',
 }
 
-print(dump(materials))
-
 textures = materials
 textures[1] = 'default:grass' --dirt
 textures[2] = 'default:water' --bucket_with_water
@@ -79,11 +77,8 @@ function spawn_cube(pos, create)
 		pos2 = {x=x, y=y, z=z}
 		if create then
 			if not(pos.x==x and pos.y==y and pos.z==z) then
-				--minetest.env:add_node({x=x, y=y, z=z}, {name = 'default:dirt'})
 				cubelet = {unpack(blacktex)}
-				dir = {x=pos.x-x, y=pos.y-y, z=pos.z-z}
-				cubelet = set_cubelet(cubelet, dir)
-				name = 'rubiks:cubelet_'..get_cubelet_name(cubelet)
+				name = 'rubiks:cubelet1'
 				minetest.env:add_node(pos2, {name = name})
 				local meta = minetest.env:get_meta(pos2)
 				meta:set_string('cube_center',
@@ -117,64 +112,8 @@ for b = 1, 6 do
 	blacktex[b] = 'black'
 end
 
-function set_cubelet(cubelet, dir)
-	if dir.y == -1 then
-		cubelet[1] = colors[1]
-	elseif dir.y == 1 then
-		cubelet[2] = colors[2]
-	end
-	if dir.x == -1 then
-		cubelet[3] = colors[3]
-	elseif dir.x == 1 then
-		cubelet[4] = colors[4]
-	end
-	if dir.z == -1 then
-		cubelet[5] = colors[5]
-	elseif dir.z == 1 then
-		cubelet[6] = colors[6]
-	end
-	return cubelet
-end
-
 function generate_cubelets()
-	--centers
-	for c = 1, 6 do
-		cubelet = {unpack(blacktex)}
-		cubelet[c] = colors[c]
-		register_cubelet(cubelet, 'center')
-	end
-	--edges
-	for y = 1, -1, -2 do
-	for x = 1, -1, -2 do
-		cubelet = {unpack(blacktex)}
-		cubelet = set_cubelet(cubelet, {x=x, y=y, z=0})
-		register_cubelet(cubelet, 'edge')
-	end
-	end
-	for x = 1, -1, -2 do
-	for z = 1, -1, -2 do
-		cubelet = {unpack(blacktex)}
-		cubelet = set_cubelet(cubelet, {x=x, y=0, z=z})
-		register_cubelet(cubelet, 'edge')
-	end
-	end
-	for y = 1, -1, -2 do
-	for z = 1, -1, -2 do
-		cubelet = {unpack(blacktex)}
-		cubelet = set_cubelet(cubelet, {x=0, y=y, z=z})
-		register_cubelet(cubelet, 'edge')
-	end
-	end
-	--corners
-	for x = 1, -1, -2 do
-	for y = 1, -1, -2 do
-	for z = 1, -1, -2 do
-		cubelet = {unpack(blacktex)}
-		cubelet = set_cubelet(cubelet, {x=x, y=y, z=z})
-		register_cubelet(cubelet, 'corner')
-	end
-	end
-	end
+	register_cubelet(colors)
 end
 
 function get_cubelet_name(cubelet)
@@ -184,46 +123,71 @@ function get_cubelet_name(cubelet)
 	end
 	return name
 end
-
+cubelettiles = {}
 function register_cubelet(cubelet, piece)
-	name = get_cubelet_name(cubelet)
+	--name = get_cubelet_name(cubelet)
 	lettex = {}
 	for n = 1, 6 do
 		lettex[n] = color_to_texture(cubelet[n])
 	end
-	print(name)
 
-	if piece == 'center' then
-		on_punch = function(pos, node, puncher)
-			local meta = minetest.env:get_meta(pos)
-			center = minetest.string_to_pos(meta:get_string('cube_center'))
-			if center ~= nil then
-				dir = {x=pos.x-center.x, y=pos.y-center.y, z=pos.z-center.z}
-				rotate_cube(center, dir, true, false)
-			end
+	tiles = {unpack(lettex)}
+	direction = true
+	for rotations = 1, 6 do
+		cubelettiles[rotations] = {unpack(tiles)}
+		minetest.register_node('rubiks:cubelet'..rotations, {
+			description = "Rubik's Cubelet "..rotations,
+			tiles = tiles,
+			inventory_image = minetest.inventorycube(tiles[1], tiles[6], tiles[3]),
+			groups = {crumbly=2},
+			after_dig_node = function(pos, oldnode, oldmeta, digger)
+				local string = oldmeta.fields.cube_center
+				if string ~= nil then
+					pos = minetest.string_to_pos(string)
+					spawn_cube(pos, false)
+				end
+			end,
+			drop = 'rubiks:cube',
+			on_punch = function(pos, node, puncher)
+				local meta = minetest.env:get_meta(pos)
+				local string = meta:get_string('cube_center')
+				if string ~= nil then
+					center = minetest.string_to_pos(string)
+					dir = {x=pos.x-center.x, y=pos.y-center.y, z=pos.z-center.z}
+					axesoff = (dir.x ~= 0 and 1 or 0)
+					        + (dir.y ~= 0 and 1 or 0)
+					        + (dir.z ~= 0 and 1 or 0)
+					if axesoff == 1 then --center
+						rotate_cube(center, dir, true, false)
+					elseif axesoff == 2 then --edge
+	
+					else --corner
+	
+					end
+				end
+			end,
+			--on_rightclick = function(self, clicker)
+			--rotate counterclockwise
+			paramtype2 = 'facedir',
+		})
+		--+Y, -Y, +X, -X, +Z, -Z
+		if direction == true then
+			--x rotation
+			placeholder = tiles[1]
+			tiles[1] = tiles[6]
+			tiles[6] = tiles[2]
+			tiles[2] = tiles[5]
+			tiles[5] = placeholder
+		else
+			--z rotation
+			placeholder = tiles[1]
+			tiles[1] = tiles[3]
+			tiles[3] = tiles[2]
+			tiles[2] = tiles[4]
+			tiles[4] = placeholder
 		end
-		--on_rightclick = function(self, clicker)
-		--rotate counterclockwise
-	else
-		on_punch = nil
+		direction = not direction
 	end
-
-	minetest.register_node('rubiks:cubelet_'..name, {
-		description = "Rubik's Cubelet "..name,
-		tiles = lettex,
-		inventory_image = minetest.inventorycube(lettex[1], lettex[6], lettex[3]),
-		groups = {crumbly=2},
-		after_dig_node = function(pos, oldnode, oldmeta, digger)
-			pos = minetest.string_to_pos(
-				oldmeta.fields.cube_center
-			)
-			if pos ~= nil then
-				spawn_cube(pos, false)
-			end
-		end,
-		drop = 'rubiks:cube',
-		on_punch = on_punch,
-	})
 end
 generate_cubelets()
 
@@ -258,6 +222,7 @@ function rotate_cube(pos, dir, clockwise, all)
 		loadpos[2] = dir.y
 		axes[1] = 1--x
 		axes[2] = 3--z
+
 	end
 	if dir.z ~= 0 then
 		loadpos[3] = dir.z
@@ -274,9 +239,11 @@ function rotate_cube(pos, dir, clockwise, all)
 	loadpos[axes[1]] = firstaxis
 	for secondaxis = -1, 1 do
 	loadpos[axes[2]] = secondaxis
+
 		--don't lose data here either
 		writepos = {unpack(loadpos)}
-		--rotate
+
+		--rotate globally
 		writepos[axes[1]] = loadpos[axes[2]]
 		writepos[axes[2]] = loadpos[axes[1]]
 		if clockwise then
@@ -284,17 +251,92 @@ function rotate_cube(pos, dir, clockwise, all)
 		else
 			writepos[axes[1]] = -writepos[axes[1]]
 		end
+
 		--get absolute position
 		pos2 = {x=pos.x+writepos[1], y=pos.y+writepos[2], z=pos.z+writepos[3]}
-		--write
+
 		loadcubelet = cube[loadpos[1]][loadpos[2]][loadpos[3]]
-		minetest.env:add_node(pos2, {
-			name = loadcubelet.node.name}
-		)
+		--rotate locally
+		--oldtiles = minetest.registered_nodes[loadcubelet.node.name].tiles
+		wallmounted = string.gsub(loadcubelet.node.name, 'rubiks:cubelet', '')+0
+		oldtiles = {unpack(cubelettiles[wallmounted])}
+		--print('oldtiles '..dump(oldtiles))
+		--print('oldparam2 '..dump(loadcubelet.node.param2))
+		oldtiles = facedir_to_tiles(oldtiles, loadcubelet.node.param2)
+		--print('newoldtiles '..dump(oldtiles))
+		matchtiles = {
+			--match the side that is spinning
+			dir.y ==  1 and oldtiles[1] or nil,
+			dir.y == -1 and oldtiles[2] or nil,
+			dir.x ==  1 and oldtiles[3] or nil,
+			dir.x == -1 and oldtiles[4] or nil,
+			dir.z ==  1 and oldtiles[5] or nil,
+			dir.z == -1 and oldtiles[6] or nil,
+		}
+		--match the side that is turning
+		--+Y, -Y, +X, -X, +Z, -Z
+		if dir.x ~= 0 then
+			-- +Y = +Z or -Z
+			matchtiles[1] = oldtiles[clockwise and 5 or 6]
+		end
+		if dir.y ~= 0 then
+			-- -Z = +X or -X
+			matchtiles[6] = oldtiles[clockwise and 3 or 4]
+		end
+		if dir.z ~= 0 then
+			-- -X = +Y or -Y
+			matchtiles[4] = oldtiles[clockwise and 1 or 2]
+		end
+
+		print(loadcubelet.node.param2..' '..loadcubelet.node.name)
+		print('oldtiles'..dump(oldtiles))
+		print('matchtiles '..dump(matchtiles))
+		
+		name, param2 = match_cubelet(matchtiles)
+
+		print(name..' '..param2)
+
+		--loadcubelet.node.param2 = (loadcubelet.node.param2+1)%4
+		minetest.env:add_node(pos2, {name = name, param2 = param2})
 		local meta = minetest.env:get_meta(pos2)
 		meta:from_table(loadcubelet.meta)
 
 	end
 	end
+	print('done rotating')
+end
+
+function facedir_to_tiles(tiles, facedir)
+	for f = 0, facedir-1 do
+		--+Y, -Y, +X, -X, +Z, -Z
+		placeholder = tiles[6]
+		tiles[6] = tiles[4]
+		tiles[4] = tiles[5]
+		tiles[5] = tiles[3]
+		tiles[3] = placeholder
+	end
+	return tiles
+end
+
+function match_cubelet(matchtiles)
+	for wallmounted = 1, 6 do
+		--nodetiles = minetest.registered_nodes['rubiks:cubelet'..wallmounted].tiles
+		nodetiles = {unpack(cubelettiles[wallmounted])}
+	for facedir = 0, 3 do
+		testtiles = facedir_to_tiles(nodetiles, facedir)
+		--print(wallmounted..' '..facedir..' '..dump(testtiles))
+		if
+		(matchtiles[1] == testtiles[1] or matchtiles[1] == nil) and
+		(matchtiles[2] == testtiles[2] or matchtiles[2] == nil) and
+		(matchtiles[3] == testtiles[3] or matchtiles[3] == nil) and
+		(matchtiles[4] == testtiles[4] or matchtiles[4] == nil) and
+		(matchtiles[5] == testtiles[5] or matchtiles[5] == nil) and
+		(matchtiles[6] == testtiles[6] or matchtiles[6] == nil) then
+			print('testtiles '..dump(testtiles))
+			return 'rubiks:cubelet'..wallmounted, facedir
+		end
+	end
+	end
+	print("Couldn't rotate cubelet!")
 end
 
