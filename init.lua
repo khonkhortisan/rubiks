@@ -10,16 +10,17 @@ colors = {
 
 materials = {
 	'default:dirt',
-	'bucket:bucket_with_water',
+	'bucket:bucket_water',
 	'default:desert_stone',
 	'default:desert_sand',
-	'default:steel_block',
+	'default:steelblock',
 	'default:sand',
 }
 
-textures = materials
+textures = {unpack(materials)}
 textures[1] = 'default:grass' --dirt
 textures[2] = 'default:water' --bucket_with_water
+textures[5] = 'default:steel_block' --stupid naming conventions
 cubetex = {}
 for t = 1, #textures do
 	textures[t], _ = string.gsub(textures[t], ':', '_')
@@ -29,12 +30,14 @@ for t = 1, #textures do
 end
 textures[7] = 'default_stone.png^rubiks_outline.png'
 
+print('materials '..dump(materials))
+
 minetest.register_craft({
 	type = "shapeless",
 	output = "rubiks:cube",
 	recipe = materials,
 	replacements = {
-		{'bucket:bucket_with_water', 'bucket:bucket_empty'},
+		{'bucket:bucket_water', 'bucket:bucket_empty'},
 	},
 })
 
@@ -116,16 +119,8 @@ function generate_cubelets()
 	register_cubelet(colors)
 end
 
-function get_cubelet_name(cubelet)
-	name = ''
-	for n = 1, 6 do
-		name = name..cubelet[n]
-	end
-	return name
-end
 cubelettiles = {}
 function register_cubelet(cubelet, piece)
-	--name = get_cubelet_name(cubelet)
 	lettex = {}
 	for n = 1, 6 do
 		lettex[n] = color_to_texture(cubelet[n])
@@ -134,6 +129,7 @@ function register_cubelet(cubelet, piece)
 	tiles = {unpack(lettex)}
 	direction = true
 	for rotations = 1, 6 do
+		--save the tiles, I don't trust minetest.registered_nodes[node.name].tiles
 		cubelettiles[rotations] = {unpack(tiles)}
 		minetest.register_node('rubiks:cubelet'..rotations, {
 			description = "Rubik's Cubelet "..rotations,
@@ -277,7 +273,7 @@ function rotate_cube(pos, dir, clockwise, all)
 		--+Y, -Y, +X, -X, +Z, -Z
 		if dir.x ~= 0 then
 			-- +Y = +Z or -Z
-			matchtiles[1] = oldtiles[clockwise and 5 or 6]..''
+			matchtiles[1] = oldtiles[clockwise and 6 or 5]..''
 		end
 		if dir.y ~= 0 then
 			-- -Z = +X or -X
@@ -285,9 +281,9 @@ function rotate_cube(pos, dir, clockwise, all)
 		end
 		if dir.z ~= 0 then
 			-- -X = +Y or -Y
-			matchtiles[4] = oldtiles[clockwise and 1 or 2]..''
+			matchtiles[4] = oldtiles[clockwise and 2 or 1]..''
 		end
-
+		print('clockwise '..(clockwise and 1 or 0))
 		print(loadcubelet.node.param2..' '..loadcubelet.node.name)
 		print('oldtiles'..dump(oldtiles))
 		print('matchtiles '..dump(matchtiles))
@@ -338,6 +334,6 @@ function match_cubelet(matchtiles)
 		end
 	end
 	end
-	print("Couldn't rotate cubelet!")
+	print("Couldn't rotate cubelet! Assume crash position!")
 end
 
