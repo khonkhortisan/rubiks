@@ -5,30 +5,17 @@ colors = {
 	'orange',
 	'white',
 	'yellow',
-	'black',
 }
 
-materials = {
-	'default:dirt',
-	'bucket:bucket_water',
-	'default:desert_stone',
-	'default:desert_sand',
-	'default:steelblock',
-	'default:sand',
-}
-
-textures = {unpack(materials)}
-textures[1] = 'default:grass' --dirt
-textures[2] = 'default:water' --bucket_with_water
-textures[5] = 'default:steel_block' --stupid naming conventions
-cubetex = {}
-for t = 1, #textures do
-	textures[t], _ = string.gsub(textures[t], ':', '_')
-	textures[t] = textures[t]..'.png'
-	cubetex[t] = textures[t]..'^rubiks_three.png'
-	textures[t] = textures[t]..'^rubiks_outline.png'
+materials = {}
+textures = {}
+spawntex = {}
+for c = 1, #colors do
+	materials[c] = 'wool:'..colors[c]
+	textures[c] = 'wool_'..colors[c]..'.png'
+	spawntex[c] = textures[c]..'^rubiks_three.png'
+	textures[c] = textures[c]..'^rubiks_outline.png'
 end
-textures[7] = 'default_stone.png^rubiks_outline.png'
 
 function spawn_cube(pos, create)
 	for x = pos.x-1, pos.x+1 do
@@ -58,8 +45,8 @@ end
 
 minetest.register_node('rubiks:cube', {
 	description  = "Rubik's Cube Spawner",
-	tiles = cubetex,
-	inventory_image = minetest.inventorycube(cubetex[1], cubetex[6], cubetex[3]),
+	tiles = spawntex,
+	inventory_image = minetest.inventorycube(spawntex[1], spawntex[6], spawntex[3]),
 	groups = {crumbly=3},
 	on_punch = function(pos, node, puncher)
 		for x = pos.x-1, pos.x+1 do
