@@ -106,11 +106,11 @@ function facedir_to_tiles(tilestocopy, facedir)
 	--minus one because an equal facedir doesn't need rotating
 	for f = 0, facedir-1 do
 		--+Y, -Y, +X, -X, +Z, -Z
-		placeholder = tiles[6]
-		tiles[6] = tiles[4]
-		tiles[4] = tiles[5]
-		tiles[5] = tiles[3]
-		tiles[3] = placeholder
+		placeholder = tiles[3]
+		tiles[3] = tiles[5]
+		tiles[5] = tiles[4]
+		tiles[4] = tiles[6]
+		tiles[6] = placeholder
 	end
 	return tiles
 end
@@ -212,18 +212,19 @@ function rotate_cube(pos, dir, clockwise, all)
 		--match a turning side
 		--+Y, -Y, +X, -X, +Z, -Z
 		if dir.x ~= 0 then
-			-- +Y = +Z or -Z
+			-- +Y = -Z or +Z
 			matchtiles[1] = oldtiles[clockwise and 6 or 5]..''
 		end
 		if dir.y ~= 0 then
 			-- -Z = +X or -X
-			matchtiles[6] = oldtiles[clockwise and 4 or 3]..''
+			matchtiles[6] = oldtiles[clockwise and 3 or 4]..''
 		end
 		if dir.z ~= 0 then
 			-- -X = +Y or -Y
-			matchtiles[4] = oldtiles[clockwise and 2 or 1]..''
+			matchtiles[4] = oldtiles[clockwise and 1 or 2]..''
+
 		end
-		
+
 		--get new cubelet
 		name, param2 = match_cubelet(matchtiles)
 		
