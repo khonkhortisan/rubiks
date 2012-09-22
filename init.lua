@@ -57,7 +57,7 @@ end
 --can't make a rubik's cube without the cube
 minetest.register_node('rubiks:cube', {
 	--spawner because I don't get the uv pos yet
-	description  = "Rubik's Cube Spawner",
+	description  = "Rubik's Cube",
 	tiles = spawntex,
 	--show green, yellow, red sides to look 3d in inventory
 	inventory_image = minetest.inventorycube(spawntex[1], spawntex[6], spawntex[3]),
@@ -245,10 +245,10 @@ function register_cubelets()
 		--save the tiles, I don't trust minetest.registered_nodes[node.name].tiles
 		cubelettiles[rotations] = {unpack(tiles)}
 		minetest.register_node('rubiks:cubelet'..rotations, {
-			description = "Rubik's Cubelet "..rotations,
+			description = "Rubik's Cubelet #"..rotations,
 			tiles = tiles,
 			inventory_image = minetest.inventorycube(tiles[1], tiles[6], tiles[3]),
-			groups = {crumbly=2},
+			groups = {crumbly=2, not_in_creative_inventory = 1},
 			after_dig_node = function(pos, oldnode, oldmeta, digger)
 				local string = oldmeta.fields.cube_center
 				if string ~= nil then
@@ -275,8 +275,6 @@ function register_cubelets()
 					end
 				end
 			end,
-			--on_rightclick = function(self, clicker)
-			--rotate counterclockwise
 			paramtype2 = 'facedir',
 		})
 		--+Y, -Y, +X, -X, +Z, -Z
