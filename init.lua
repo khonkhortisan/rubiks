@@ -1,8 +1,3 @@
-
---if not(closed_door) go_out()
---unless(closed_door) go_out()
--- I want an unless stanement.
-
 --Okay, so we're making a Rubik's Cube!
 --Let's start with the basics.
 colors = {
@@ -237,6 +232,25 @@ function rotate_cube(pos, dir, clockwise, all)
 	end
 end
 
+function start_rotation(pos, clockwise)
+	local meta = minetest.env:get_meta(pos)
+	local string = meta:get_string('cube_center')
+	if string ~= nil then
+		center = minetest.string_to_pos(string)
+		dir = {x=pos.x-center.x, y=pos.y-center.y, z=pos.z-center.z}
+		axesoff = (dir.x ~= 0 and 1 or 0)
+			+ (dir.y ~= 0 and 1 or 0)
+			+ (dir.z ~= 0 and 1 or 0)
+		if axesoff == 1 then --center
+			rotate_cube(center, dir, clockwise, false)
+		elseif axesoff == 2 then --edge
+
+		else --corner
+
+		end
+	end
+end
+
 function register_cubelets()
 	tiles = {unpack(textures)}
 	direction = true
@@ -258,22 +272,17 @@ function register_cubelets()
 			end,
 			drop = 'rubiks:cube',
 			on_punch = function(pos, node, puncher)
+				start_rotation(pos, true)
+			end,
+			on_construct = function(pos)
 				local meta = minetest.env:get_meta(pos)
-				local string = meta:get_string('cube_center')
-				if string ~= nil then
-					center = minetest.string_to_pos(string)
-					dir = {x=pos.x-center.x, y=pos.y-center.y, z=pos.z-center.z}
-					axesoff = (dir.x ~= 0 and 1 or 0)
-					        + (dir.y ~= 0 and 1 or 0)
-					        + (dir.z ~= 0 and 1 or 0)
-					if axesoff == 1 then --center
-						rotate_cube(center, dir, true, false)
-					elseif axesoff == 2 then --edge
-	
-					else --corner
-	
-					end
-				end
+				meta:set_string("formspec",
+					"size[1,1]"..
+					"button_exit[0,0;1,1;counterclockwise;]" --↻
+				)
+			end,
+			on_receive_fields = function(pos, formname, fields, sender)
+				start_rotation(pos, false)
 			end,
 			paramtype2 = 'facedir',
 		})
