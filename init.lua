@@ -134,7 +134,7 @@ function match_cubelet(matchtiles)
 	print("Couldn't rotate cubelet! Assume crash position!")
 end
 
-function rotate_cube(pos, dir, clockwise, all)
+function rotate_cube(pos, dir, clockwise, layer)
 	--save cube to rotate without losing data
 	cube = {}
 	for x = -1, 1 do cube[x] = {}
@@ -154,17 +154,26 @@ function rotate_cube(pos, dir, clockwise, all)
 	loadpos, axes = {0, 0, 0}, {}
 	if dir.x ~= 0 then
 		loadpos[1] = dir.x
+		for l=1, layer-1 do
+			loadpos[1] = loadpos[1] - dir.x
+		end
 		axes[1] = 3--z
 		axes[2] = 2--y
 	end
 	if dir.y ~= 0 then
 		loadpos[2] = dir.y
+		for l=1, layer-1 do
+			loadpos[2] = loadpos[2] - dir.y
+		end
 		axes[1] = 1--x
 		axes[2] = 3--z
 
 	end
 	if dir.z ~= 0 then
 		loadpos[3] = dir.z
+		for l=1, layer-1 do
+			loadpos[3] = loadpos[3] - dir.z
+		end
 		axes[1] = 2--y
 		axes[2] = 1--x
 	end
@@ -190,49 +199,50 @@ function rotate_cube(pos, dir, clockwise, all)
 
 		--rotate cubelet itself
 		loadcubelet = cube[loadpos[1]][loadpos[2]][loadpos[3]]
-		topcolor = string.gsub(loadcubelet.node.name, 'rubiks:cubelet', '')
-		oldtiles = facedir_to_tiles(
-			cubelettiles[topcolor+0],
-			loadcubelet.node.param2
-		)
-		matchtiles = {
-			--match the face
-			dir.y ==  1 and oldtiles[1]..'' or nil,
-			dir.y == -1 and oldtiles[2]..'' or nil,
-			dir.x ==  1 and oldtiles[3]..'' or nil,
-			dir.x == -1 and oldtiles[4]..'' or nil,
-			dir.z ==  1 and oldtiles[5]..'' or nil,
-			dir.z == -1 and oldtiles[6]..'' or nil,
-		}
-		--match a turning side
-		--+Y, -Y, +X, -X, +Z, -Z
-		if dir.x ~= 0 then
-			-- +Y = -Z or +Z
-			matchtiles[1] = oldtiles[clockwise and 6 or 5]..''
+		if loadcubelet.node.name ~= 'rubiks:cube' then--continue end
+			topcolor = string.gsub(loadcubelet.node.name, 'rubiks:cubelet', '')
+			oldtiles = facedir_to_tiles(
+				cubelettiles[topcolor+0],
+				loadcubelet.node.param2
+			)
+			matchtiles = {
+				--match the face
+				dir.y ==  1 and oldtiles[1]..'' or nil,
+				dir.y == -1 and oldtiles[2]..'' or nil,
+				dir.x ==  1 and oldtiles[3]..'' or nil,
+				dir.x == -1 and oldtiles[4]..'' or nil,
+				dir.z ==  1 and oldtiles[5]..'' or nil,
+				dir.z == -1 and oldtiles[6]..'' or nil,
+			}
+			--match a turning side
+			--+Y, -Y, +X, -X, +Z, -Z
+			if dir.x ~= 0 then
+				-- +Y = -Z or +Z
+				matchtiles[1] = oldtiles[clockwise and 6 or 5]..''
+			end
+			if dir.y ~= 0 then
+				-- -Z = +X or -X
+				matchtiles[6] = oldtiles[clockwise and 3 or 4]..''
+			end
+			if dir.z ~= 0 then
+				-- -X = +Y or -Y
+				matchtiles[4] = oldtiles[clockwise and 1 or 2]..''
+	
+			end
+	
+			--get new cubelet
+			name, param2 = match_cubelet(matchtiles)
+			
+			--place it
+			minetest.env:add_node(pos2, {name = name, param2 = param2})
+			local meta = minetest.env:get_meta(pos2)
+			meta:from_table(loadcubelet.meta)
 		end
-		if dir.y ~= 0 then
-			-- -Z = +X or -X
-			matchtiles[6] = oldtiles[clockwise and 3 or 4]..''
-		end
-		if dir.z ~= 0 then
-			-- -X = +Y or -Y
-			matchtiles[4] = oldtiles[clockwise and 1 or 2]..''
-
-		end
-
-		--get new cubelet
-		name, param2 = match_cubelet(matchtiles)
-		
-		--place it
-		minetest.env:add_node(pos2, {name = name, param2 = param2})
-		local meta = minetest.env:get_meta(pos2)
-		meta:from_table(loadcubelet.meta)
-
 	end
 	end
 end
 
-function start_rotation(pos, clockwise)
+function start_rotation(pos, clockwise, layer)
 	local meta = minetest.env:get_meta(pos)
 	local string = meta:get_string('cube_center')
 	if string ~= nil then
@@ -242,7 +252,13 @@ function start_rotation(pos, clockwise)
 			+ (dir.y ~= 0 and 1 or 0)
 			+ (dir.z ~= 0 and 1 or 0)
 		if axesoff == 1 then --center
-			rotate_cube(center, dir, clockwise, false)
+			if layer == 6 then
+				for layer = 1, 3 do
+					rotate_cube(center, dir, clockwise, layer)
+				end
+			else
+				rotate_cube(center, dir, clockwise, layer)
+			end
 		elseif axesoff == 2 then --edge
 
 		else --corner
@@ -272,17 +288,28 @@ function register_cubelets()
 			end,
 			drop = 'rubiks:cube',
 			on_punch = function(pos, node, puncher)
-				start_rotation(pos, true)
+				start_rotation(pos, true, 1)
 			end,
 			on_construct = function(pos)
 				local meta = minetest.env:get_meta(pos)
 				meta:set_string("formspec",
-					"size[1,1]"..
-					"button_exit[0,0;1,1;counterclockwise;]" --↻
+					"size[3,5]"..
+					"button_exit[1,1;1,1;L3;L3]"..
+					"button_exit[1,2;1,1;L1;L1]"..
+					"button_exit[1,3;1,1;L2;L2]"..
+					"button_exit[2,1;1,1;R3;R3]"..
+					"button_exit[2,2;1,1;R1;R1]"..
+					"button_exit[2,3;1,1;R2;R2]"
 				)
 			end,
 			on_receive_fields = function(pos, formname, fields, sender)
-				start_rotation(pos, false)
+				if fields.L1 then start_rotation(pos, false, 1)
+				elseif fields.L2 then start_rotation(pos, false, 3)
+				elseif fields.L3 then start_rotation(pos, false, 6)
+				elseif fields.R1 then start_rotation(pos, true, 1)
+				elseif fields.R2 then start_rotation(pos, true, 3)
+				else--[[fields.R3]]   start_rotation(pos, true, 6)
+				end
 			end,
 			paramtype2 = 'facedir',
 		})
