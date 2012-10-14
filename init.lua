@@ -200,7 +200,8 @@ function rotate_cube(pos, dir, clockwise, layer)
 		--rotate cubelet itself
 		loadcubelet = cube[loadpos[1]][loadpos[2]][loadpos[3]]
 		if loadcubelet.node.name ~= 'rubiks:cube' then--continue end
-			topcolor = string.gsub(loadcubelet.node.name, 'rubiks:cubelet', '')
+			--string.gsub
+			topcolor = loadcubelet.node.name:gsub('rubiks:cubelet', '')
 			oldtiles = facedir_to_tiles(
 				cubelettiles[topcolor+0],
 				loadcubelet.node.param2
@@ -293,22 +294,38 @@ function register_cubelets()
 			on_construct = function(pos)
 				local meta = minetest.env:get_meta(pos)
 				meta:set_string("formspec",
-					"size[3,5]"..
-					"button_exit[1,1;1,1;L3;L3]"..
-					"button_exit[1,2;1,1;L1;L1]"..
-					"button_exit[1,3;1,1;L2;L2]"..
-					"button_exit[2,1;1,1;R3;R3]"..
-					"button_exit[2,2;1,1;R1;R1]"..
-					"button_exit[2,3;1,1;R2;R2]"
+					"size[3,3]"..
+					"image_button_exit[0,0;1,1;rubiks_larger.png;larger;]"..
+					"image_button_exit[0,1;1,1;rubiks_reset.png;reset;]"..
+					--"image_button_exit[0,2;1,1;rubiks_scramble.png;scramble;]"..
+					"image_button_exit[0,2;1,1;rubiks_smaller.png;smaller;]"..
+					"image_button_exit[1,0;1,1;rubiks_L3.png;L3;]"..
+					"image_button_exit[1,1;1,1;rubiks_L1.png;L1;]"..
+					"image_button_exit[1,2;1,1;rubiks_L2.png;L2;]"..
+					"image_button_exit[2,0;1,1;rubiks_R3.png;R3;]"..
+					"image_button_exit[2,1;1,1;rubiks_R1.png;R1;]"..
+					"image_button_exit[2,2;1,1;rubiks_R2.png;R2;]"
 				)
 			end,
 			on_receive_fields = function(pos, formname, fields, sender)
-				if fields.L1 then start_rotation(pos, false, 1)
-				elseif fields.L2 then start_rotation(pos, false, 3)
-				elseif fields.L3 then start_rotation(pos, false, 6)
-				elseif fields.R1 then start_rotation(pos, true, 1)
-				elseif fields.R2 then start_rotation(pos, true, 3)
-				else--[[fields.R3]]   start_rotation(pos, true, 6)
+				if fields.L1 then
+					start_rotation(pos, false, 1)
+				elseif fields.L2 then
+					start_rotation(pos, false, 3)
+				elseif fields.L3 then
+					start_rotation(pos, false, 6)
+				elseif fields.R1 then
+					start_rotation(pos, true, 1)
+				elseif fields.R2 then
+					start_rotation(pos, true, 3)
+				elseif fields.R3 then
+					start_rotation(pos, true, 6)
+				elseif fields.larger then
+					minetest.chat_send_player(sender:get_player_name(), 'TODO: make the cube have more layers')
+				elseif fields.smaller then
+					minetest.chat_send_player(sender:get_player_name(), 'TODO: make the cube have less layers')
+				else --reset
+					minetest.chat_send_player(sender:get_player_name(), 'TODO: toggle between reset/scramble')
 				end
 			end,
 			paramtype2 = 'facedir',
