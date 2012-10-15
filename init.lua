@@ -44,7 +44,7 @@ function set_cubelet_formspec(pos, size)
 			"size["..size..","..size.."]"..
 			
 			"image_button_exit[0,0;1,1;rubiks_larger.png;larger;]"..
-			"image_button_exit[0,1;1,1;rubiks_reset.png]"..
+			"image_button_exit[0,1;1,1;rubiks_reset.png;reset;]"..
 			--"image_button_exit[0,2;1,1;rubiks_scramble.png;scramble;]"..
 			"image_button_exit[0,2;1,1;rubiks_smaller.png;smaller;]"..
 			
