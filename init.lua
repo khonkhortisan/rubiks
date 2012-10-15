@@ -19,6 +19,46 @@ for color = 1, #colors do
 	--textures[color] = textures[color]..'^rubiks_outline.png'
 end
 
+--is this the center of a face, on the edge, or is it a corner?
+function get_axesoff(pos)
+	local meta = minetest.env:get_meta(pos)
+	local string = meta:get_string('cube_center')
+	if string ~= nil then
+		center = minetest.string_to_pos(string)
+		if center ~= nil then
+			dir = {x=pos.x-center.x, y=pos.y-center.y, z=pos.z-center.z}
+			axesoff = (dir.x ~= 0 and 1 or 0)
+			+ (dir.y ~= 0 and 1 or 0)
+			+ (dir.z ~= 0 and 1 or 0)
+			return axesoff
+		end
+	end
+end
+
+--this isn't in the cubelets' on_construct
+--because the meta already needs to be set
+function set_cubelet_formspec(pos, size)
+	if get_axesoff(pos) == 1 then
+		local meta = minetest.env:get_meta(pos)
+		meta:set_string("formspec",
+			"size["..size..","..size.."]"..
+			
+			"image_button_exit[0,0;1,1;rubiks_larger.png;larger;]"..
+			"image_button_exit[0,1;1,1;rubiks_reset.png]"..
+			--"image_button_exit[0,2;1,1;rubiks_scramble.png;scramble;]"..
+			"image_button_exit[0,2;1,1;rubiks_smaller.png;smaller;]"..
+			
+			"image_button_exit[1,0;1,1;rubiks_L3.png;L3;]"..
+			"image_button_exit[1,1;1,1;rubiks_L1.png;L1;]"..
+			"image_button_exit[1,2;1,1;rubiks_L2.png;L2;]"..
+			
+			"image_button_exit[2,0;1,1;rubiks_R3.png;R3;]"..
+			"image_button_exit[2,1;1,1;rubiks_R1.png;R1;]"..
+			"image_button_exit[2,2;1,1;rubiks_R2.png;R2;]"..
+		'')
+	end
+end
+
 function expand_cube(pos, spawn)
 	for x = pos.x-1, pos.x+1 do
 	for y = pos.y-1, pos.y+1 do
@@ -35,6 +75,7 @@ function expand_cube(pos, spawn)
 				meta:set_string('cube_center',
 					minetest.pos_to_string(pos)
 				)
+				set_cubelet_formspec(pos2, 3)
 			end
 		else --delete
 			minetest.env:remove_node(pos2)
@@ -244,27 +285,19 @@ function rotate_cube(pos, dir, clockwise, layer)
 end
 
 function start_rotation(pos, clockwise, layer)
-	local meta = minetest.env:get_meta(pos)
-	local string = meta:get_string('cube_center')
-	if string ~= nil then
-		center = minetest.string_to_pos(string)
-		dir = {x=pos.x-center.x, y=pos.y-center.y, z=pos.z-center.z}
-		axesoff = (dir.x ~= 0 and 1 or 0)
-			+ (dir.y ~= 0 and 1 or 0)
-			+ (dir.z ~= 0 and 1 or 0)
-		if axesoff == 1 then --center
-			if layer == 6 then
-				for layer = 1, 3 do
-					rotate_cube(center, dir, clockwise, layer)
-				end
-			else
+	axesoff = get_axesoff(pos)
+	if axesoff == 1 then --center
+		if layer == 6 then
+			for layer = 1, 3 do
 				rotate_cube(center, dir, clockwise, layer)
 			end
-		elseif axesoff == 2 then --edge
-
-		else --corner
-
+		else
+			rotate_cube(center, dir, clockwise, layer)
 		end
+	elseif axesoff == 2 then --edge
+
+	else --corner
+
 	end
 end
 
@@ -291,22 +324,7 @@ function register_cubelets()
 			on_punch = function(pos, node, puncher)
 				start_rotation(pos, true, 1)
 			end,
-			on_construct = function(pos)
-				local meta = minetest.env:get_meta(pos)
-				meta:set_string("formspec",
-					"size[3,3]"..
-					"image_button_exit[0,0;1,1;rubiks_larger.png;larger;]"..
-					"image_button_exit[0,1;1,1;rubiks_reset.png;reset;]"..
-					--"image_button_exit[0,2;1,1;rubiks_scramble.png;scramble;]"..
-					"image_button_exit[0,2;1,1;rubiks_smaller.png;smaller;]"..
-					"image_button_exit[1,0;1,1;rubiks_L3.png;L3;]"..
-					"image_button_exit[1,1;1,1;rubiks_L1.png;L1;]"..
-					"image_button_exit[1,2;1,1;rubiks_L2.png;L2;]"..
-					"image_button_exit[2,0;1,1;rubiks_R3.png;R3;]"..
-					"image_button_exit[2,1;1,1;rubiks_R1.png;R1;]"..
-					"image_button_exit[2,2;1,1;rubiks_R2.png;R2;]"
-				)
-			end,
+			--cubelets not in the center of the face never get formspecs
 			on_receive_fields = function(pos, formname, fields, sender)
 				if fields.L1 then
 					start_rotation(pos, false, 1)
@@ -321,11 +339,17 @@ function register_cubelets()
 				elseif fields.R3 then
 					start_rotation(pos, true, 6)
 				elseif fields.larger then
-					minetest.chat_send_player(sender:get_player_name(), 'TODO: make the cube have more layers')
+					minetest.chat_send_player(sender:get_player_name(),
+						'TODO: make the cube have more layers'
+					)
 				elseif fields.smaller then
-					minetest.chat_send_player(sender:get_player_name(), 'TODO: make the cube have less layers')
+					minetest.chat_send_player(sender:get_player_name(),
+						'TODO: make the cube have less layers'
+					)
 				else --reset
-					minetest.chat_send_player(sender:get_player_name(), 'TODO: toggle between reset/scramble')
+					minetest.chat_send_player(sender:get_player_name(),
+						'TODO: toggle between reset/scramble'
+					)
 				end
 			end,
 			paramtype2 = 'facedir',
