@@ -1,6 +1,6 @@
 --Okay, so we're making a Rubik's Cube!
 --Let's start with the basics.
-colors = {
+local colors = {
 	'green',  -- +Y
 	'blue',   -- -Y
 	'red',    -- +X
@@ -9,9 +9,9 @@ colors = {
 	'yellow', -- -Z
 }
 
-materials = {} --what you craft the spawner with
-textures = {} --what is on the cubelets
-spawntex = {} --what is on the spawner
+local materials = {} --what you craft the spawner with
+local textures = {} --what is on the cubelets
+local spawntex = {} --what is on the spawner
 for color = 1, #colors do
 	materials[color] = 'wool:'..colors[color]
 	textures[color] = 'wool_'..colors[color]..'.png'
