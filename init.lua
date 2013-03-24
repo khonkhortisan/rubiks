@@ -376,3 +376,59 @@ function register_cubelets()
 	end
 end register_cubelets()
 
+--temporary aliases to update cleanly
+for rotations = 1, 6 do
+	minetest.register_alias('rubiks:cubelet'..rotations, 'rubiks:cubelet')
+end
+
+function axisRotate(facedir, turnaxis, turnrot)
+	turnrot = math.floor(turnrot / 90) % 4
+	axis = math.floor(facedir / 4)
+	rot = facedir % 4
+	    if turnaxis == 'x' then
+		if 3 == axis or axis == 4 then
+			if axis == 4 then turnrot = -turnrot end
+			rot = (rot + turnrot) % 4
+		else
+			for r = 0, turnrot do
+				    if  axis == 0 then	axis = 1
+				elseif  axis == 1 then	axis = 5
+							rot=rot+2
+				elseif  axis == 5 then	axis = 2
+							rot=rot-2
+				else--[[axis == 2 then]]axis = 0
+				end
+			end
+		end
+	elseif turnaxis == 'y' then
+		if 0 == axis or axis == 5 then
+			if axis == 5 then turnrot = -turnrot end
+			rot = (rot + turnrot) % 4
+		else
+			for r = 0, turnrot do
+				    if  axis == 1 then	axis = 3
+				elseif  axis == 3 then	axis = 2
+				elseif  axis == 2 then	axis = 4
+				else--[[axis == 4 then]]axis = 1
+				end	rot = (rot + 1) % 4
+			end
+		end
+	elseif turnaxis == 'z' then
+		if 1 == axis or axis == 2 then
+			if axis == 4 then turnrot = -turnrot end
+			rot = (rot + turnrot) % 4
+		else
+			for r = 0, turnrot do
+				    if  axis == 0 then	axis = 4
+				elseif  axis == 4 then	axis = 5
+				elseif  axis == 5 then	axis = 3
+				else--[[axis == 3 then]]axis = 0
+				end
+			end
+		end
+	else
+		print('axis not xyz')
+	end
+	return axis * 4 + rot -- = facedir
+end
+print(axisRotate(23, 'y', 270))
