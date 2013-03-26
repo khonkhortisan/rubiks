@@ -140,19 +140,6 @@ minetest.register_craft({
 })
 
 function rotate_cube(pos, dir, clockwise, layer)
-	if pos == nil then
-		print('pos nil')
-	end
-	if dir == nil then
-		print('dir nil')
-	end
-	if clockwise == nil then
-		print('clockwise nil')
-	end
-	if layer == nil then
-		print('layer nil')
-	end
-	print(dump(dir))
 	--save cube to rotate without losing data
 	cube = {}
 	for x = -1, 1 do cube[x] = {}
@@ -309,7 +296,6 @@ function axisRotate(facedir, turnaxis, turnrot)
 	turnrot = math.floor(turnrot / 90) % 4
 	axis = math.floor(facedir / 4)
 	rot = facedir % 4
-	print(axis..' '..rot..' '..turnaxis..' '..turnrot)
 	    if turnaxis == 1 then --x
 		if 3 == axis or axis == 4 then
 			if axis == 4 then turnrot = -turnrot end
@@ -352,7 +338,5 @@ function axisRotate(facedir, turnaxis, turnrot)
 			end
 		end
 	end
-	facedir = axis * 4 + rot
-	print(axis..' '..rot)
-	return facedir
+	return --[[facedir = ]] axis * 4 + rot
 end
