@@ -10,17 +10,20 @@ local colors = {
 }
 
 local materials = {} --what you craft the spawner with
-local textures = {} --what is on the cubelets
+local tiles = {} --what is on the cubelets
 local spawntex = {} --what is on the spawner
 for color = 1, #colors do
 	materials[color] = 'wool:'..colors[color]
-	textures[color] = 'wool_'..colors[color]..'.png'
-	spawntex[color] = textures[color]..'^rubiks_three.png'
+	tiles[color] = 'wool_'..colors[color]..'.png'
+	spawntex[color] = tiles[color]..'^rubiks_three.png'
 	--textures[color] = textures[color]..'^rubiks_outline.png'
 end
 
 --is this the center of a face, on the edge, or is it a corner?
 function get_axesoff(pos)
+	axesoff = 0
+	dir = {x=0, y=0, z=0}
+	center = {unpack(pos)}
 	local meta = minetest.env:get_meta(pos)
 	local string = meta:get_string('cube_center')
 	if string ~= nil then
@@ -30,15 +33,16 @@ function get_axesoff(pos)
 			axesoff = (dir.x ~= 0 and 1 or 0)
 			+ (dir.y ~= 0 and 1 or 0)
 			+ (dir.z ~= 0 and 1 or 0)
-			return axesoff
 		end
 	end
+	return axesoff, dir, center
 end
 
 --this isn't in the cubelets' on_construct
 --because the meta already needs to be set
 function set_cubelet_formspec(pos, size)
-	if get_axesoff(pos) == 1 then
+	axesoff, dir, center = get_axesoff(pos)
+	if axesoff == 1 then
 		local meta = minetest.env:get_meta(pos)
 		meta:set_string("formspec",
 			"size["..size..","..size.."]"..
@@ -68,7 +72,7 @@ function expand_cube(pos, spawn)
 			--don't overwrite the spawner
 			if not(pos2.x==pos.x and pos2.y==pos.y and pos2.z==pos.z) then
 				--always starts the same direction
-				name = 'rubiks:cubelet1'
+				name = 'rubiks:cubelet'
 				minetest.env:add_node(pos2, {name = name})
 				--keep track of center for the purpose of rotating the cube
 				local meta = minetest.env:get_meta(pos2)
@@ -135,47 +139,20 @@ minetest.register_craft({
 	recipe = materials,
 })
 
---from the tiles of a node definition, get the actual tiles based on the facedir
-function facedir_to_tiles(tilestocopy, facedir)
-	--copying tables is annoying
-	tiles = {unpack(tilestocopy)}
-	--minus one because an equal facedir doesn't need rotating
-	for f = 0, facedir-1 do
-		--+Y, -Y, +X, -X, +Z, -Z
-		placeholder = tiles[3]
-		tiles[3] = tiles[5]
-		tiles[5] = tiles[4]
-		tiles[4] = tiles[6]
-		tiles[6] = placeholder
-	end
-	return tiles
-end
-
---I have the colors of two sides, so give me the cubelet that has that
-function match_cubelet(matchtiles)
-	--for rotation "axis" one, do
-	for topcolor = 1, 6 do
-	nodetiles = {unpack(cubelettiles[topcolor])}
-	--for rotation "axis" two, do
-	for facedir = 0, 3 do
-	testtiles = facedir_to_tiles(nodetiles, facedir)
-		for tile = 1, 6 do
-			--unless it matches or isn't a side that is being checked for a match, continue
-			if not(
-				matchtiles[tile] == testtiles[tile] or
-				matchtiles[tile] == nil
-			) then break
-			elseif tile == 6 then
-				--match found
-				return 'rubiks:cubelet'..topcolor, facedir
-			end
-		end
-	end
-	end
-	print("Couldn't rotate cubelet! Assume crash position!")
-end
-
 function rotate_cube(pos, dir, clockwise, layer)
+	if pos == nil then
+		print('pos nil')
+	end
+	if dir == nil then
+		print('dir nil')
+	end
+	if clockwise == nil then
+		print('clockwise nil')
+	end
+	if layer == nil then
+		print('layer nil')
+	end
+	print(dump(dir))
 	--save cube to rotate without losing data
 	cube = {}
 	for x = -1, 1 do cube[x] = {}
@@ -240,43 +217,16 @@ function rotate_cube(pos, dir, clockwise, layer)
 
 		--rotate cubelet itself
 		loadcubelet = cube[loadpos[1]][loadpos[2]][loadpos[3]]
-		if loadcubelet.node.name ~= 'rubiks:cube' then--continue end
-			--string.gsub
-			topcolor = loadcubelet.node.name:gsub('rubiks:cubelet', '')
-			oldtiles = facedir_to_tiles(
-				cubelettiles[topcolor+0],
-				loadcubelet.node.param2
-			)
-			matchtiles = {
-				--match the face
-				dir.y ==  1 and oldtiles[1]..'' or nil,
-				dir.y == -1 and oldtiles[2]..'' or nil,
-				dir.x ==  1 and oldtiles[3]..'' or nil,
-				dir.x == -1 and oldtiles[4]..'' or nil,
-				dir.z ==  1 and oldtiles[5]..'' or nil,
-				dir.z == -1 and oldtiles[6]..'' or nil,
-			}
-			--match a turning side
-			--+Y, -Y, +X, -X, +Z, -Z
-			if dir.x ~= 0 then
-				-- +Y = -Z or +Z
-				matchtiles[1] = oldtiles[clockwise and 6 or 5]..''
-			end
-			if dir.y ~= 0 then
-				-- -Z = +X or -X
-				matchtiles[6] = oldtiles[clockwise and 3 or 4]..''
-			end
-			if dir.z ~= 0 then
-				-- -X = +Y or -Y
-				matchtiles[4] = oldtiles[clockwise and 1 or 2]..''
-	
-			end
-	
-			--get new cubelet
-			name, param2 = match_cubelet(matchtiles)
-			
+		name = loadcubelet.node.name
+		if name ~= 'rubiks:cube' then--continue end
+			--turnaxis = dir.x and 1 or dir.y and 2 or dir.z and 3
+			    if dir.x ~= 0 then turnaxis = 1
+			elseif dir.y ~= 0 then turnaxis = 2
+			else turnaxis = 3 end
 			--place it
-			minetest.env:add_node(pos2, {name = name, param2 = param2})
+			minetest.env:add_node(pos2, {name = name, param2 =
+				axisRotate(loadcubelet.node.param2, turnaxis, clockwise and 90 or -90)
+			})
 			local meta = minetest.env:get_meta(pos2)
 			meta:from_table(loadcubelet.meta)
 		end
@@ -285,7 +235,7 @@ function rotate_cube(pos, dir, clockwise, layer)
 end
 
 function start_rotation(pos, clockwise, layer)
-	axesoff = get_axesoff(pos)
+	axesoff, dir, center = get_axesoff(pos)
 	if axesoff == 1 then --center
 		if layer == 6 then
 			for layer = 1, 3 do
@@ -302,78 +252,52 @@ function start_rotation(pos, clockwise, layer)
 end
 
 function register_cubelets()
-	tiles = {unpack(textures)}
-	direction = true
-	cubelettiles = {}
-	for rotations = 1, 6 do
-		--save the tiles, I don't trust minetest.registered_nodes[node.name].tiles
-		cubelettiles[rotations] = {unpack(tiles)}
-		minetest.register_node('rubiks:cubelet'..rotations, {
-			description = "Rubik's Cubelet #"..rotations,
-			tiles = tiles,
-			inventory_image = minetest.inventorycube(tiles[1], tiles[6], tiles[3]),
-			groups = {crumbly=2, not_in_creative_inventory = 1},
-			after_dig_node = function(pos, oldnode, oldmeta, digger)
-				local string = oldmeta.fields.cube_center
-				if string ~= nil then
-					pos = minetest.string_to_pos(string)
-					expand_cube(pos, false)
-				end
-			end,
-			drop = 'rubiks:cube',
-			on_punch = function(pos, node, puncher)
+	minetest.register_node('rubiks:cubelet', {
+		description = "Rubik's Cubelet",
+		tiles = tiles,
+		inventory_image = minetest.inventorycube(tiles[1], tiles[6], tiles[3]),
+		groups = {crumbly=2, not_in_creative_inventory = 1},
+		after_dig_node = function(pos, oldnode, oldmeta, digger)
+			local string = oldmeta.fields.cube_center
+			if string ~= nil then
+				pos = minetest.string_to_pos(string)
+				expand_cube(pos, false)
+			end
+		end,
+		drop = 'rubiks:cube',
+		on_punch = function(pos, node, puncher)
+			start_rotation(pos, true, 1)
+		end,
+		--cubelets not in the center of the face never get formspecs
+		on_receive_fields = function(pos, formname, fields, sender)
+			if fields.L1 then
+				start_rotation(pos, false, 1)
+			elseif fields.L2 then
+				start_rotation(pos, false, 3)
+			elseif fields.L3 then
+				start_rotation(pos, false, 6)
+			elseif fields.R1 then
 				start_rotation(pos, true, 1)
-			end,
-			--cubelets not in the center of the face never get formspecs
-			on_receive_fields = function(pos, formname, fields, sender)
-				if fields.L1 then
-					start_rotation(pos, false, 1)
-				elseif fields.L2 then
-					start_rotation(pos, false, 3)
-				elseif fields.L3 then
-					start_rotation(pos, false, 6)
-				elseif fields.R1 then
-					start_rotation(pos, true, 1)
-				elseif fields.R2 then
-					start_rotation(pos, true, 3)
-				elseif fields.R3 then
-					start_rotation(pos, true, 6)
-				elseif fields.larger then
-					minetest.chat_send_player(sender:get_player_name(),
-						'TODO: make the cube have more layers'
-					)
-				elseif fields.smaller then
-					minetest.chat_send_player(sender:get_player_name(),
-						'TODO: make the cube have less layers'
-					)
-				else --reset
-					minetest.chat_send_player(sender:get_player_name(),
-						'TODO: toggle between reset/scramble'
-					)
-				end
-			end,
-			paramtype2 = 'facedir',
-		})
-		--+Y, -Y, +X, -X, +Z, -Z
-		if direction == true then
-			--x rotation
-			placeholder = tiles[1]
-			tiles[1] = tiles[6]
-			tiles[6] = tiles[2]
-			tiles[2] = tiles[5]
-			tiles[5] = placeholder
-		else
-			--z rotation
-			placeholder = tiles[1]
-			tiles[1] = tiles[3]
-			tiles[3] = tiles[2]
-			tiles[2] = tiles[4]
-			tiles[4] = placeholder
-		end
-		direction = not direction
-		--rotating x, then z alternating will cause each color to be on the top once.
-		--Then adding facedir (y rotation) will get the rest of the rotations.
-	end
+			elseif fields.R2 then
+				start_rotation(pos, true, 3)
+			elseif fields.R3 then
+				start_rotation(pos, true, 6)
+			elseif fields.larger then
+				minetest.chat_send_player(sender:get_player_name(),
+					'TODO: make the cube have more layers'
+				)
+			elseif fields.smaller then
+				minetest.chat_send_player(sender:get_player_name(),
+					'TODO: make the cube have less layers'
+				)
+			else --reset
+				minetest.chat_send_player(sender:get_player_name(),
+					'TODO: toggle between reset/scramble'
+				)
+			end
+		end,
+		paramtype2 = 'facedir',
+	})
 end register_cubelets()
 
 --temporary aliases to update cleanly
@@ -385,12 +309,13 @@ function axisRotate(facedir, turnaxis, turnrot)
 	turnrot = math.floor(turnrot / 90) % 4
 	axis = math.floor(facedir / 4)
 	rot = facedir % 4
-	    if turnaxis == 'x' then
+	print(axis..' '..rot..' '..turnaxis..' '..turnrot)
+	    if turnaxis == 1 then --x
 		if 3 == axis or axis == 4 then
 			if axis == 4 then turnrot = -turnrot end
 			rot = (rot + turnrot) % 4
 		else
-			for r = 0, turnrot do
+			for r = 0, turnrot-1 do
 				    if  axis == 0 then	axis = 1
 				elseif  axis == 1 then	axis = 5
 							rot=rot+2
@@ -400,12 +325,12 @@ function axisRotate(facedir, turnaxis, turnrot)
 				end
 			end
 		end
-	elseif turnaxis == 'y' then
+	elseif turnaxis == 2 then --y
 		if 0 == axis or axis == 5 then
 			if axis == 5 then turnrot = -turnrot end
 			rot = (rot + turnrot) % 4
 		else
-			for r = 0, turnrot do
+			for r = 0, turnrot-1 do
 				    if  axis == 1 then	axis = 3
 				elseif  axis == 3 then	axis = 2
 				elseif  axis == 2 then	axis = 4
@@ -413,12 +338,12 @@ function axisRotate(facedir, turnaxis, turnrot)
 				end	rot = (rot + 1) % 4
 			end
 		end
-	elseif turnaxis == 'z' then
+	elseif turnaxis == 3 then --z
 		if 1 == axis or axis == 2 then
 			if axis == 4 then turnrot = -turnrot end
 			rot = (rot + turnrot) % 4
 		else
-			for r = 0, turnrot do
+			for r = 0, turnrot-1 do
 				    if  axis == 0 then	axis = 4
 				elseif  axis == 4 then	axis = 5
 				elseif  axis == 5 then	axis = 3
@@ -426,9 +351,8 @@ function axisRotate(facedir, turnaxis, turnrot)
 				end
 			end
 		end
-	else
-		print('axis not xyz')
 	end
-	return axis * 4 + rot -- = facedir
+	facedir = axis * 4 + rot
+	print(axis..' '..rot)
+	return facedir
 end
-print(axisRotate(23, 'y', 270))
