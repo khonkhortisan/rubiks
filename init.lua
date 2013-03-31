@@ -48,19 +48,60 @@ local function set_cubelet_formspec(pos, size)
 		meta:set_string("formspec",
 			"size["..size..","..size.."]"..
 			
-			"image_button_exit[0,0;1,1;rubiks_larger.png;larger;]"..
-			"image_button_exit[0,1;1,1;rubiks_reset.png;reset;]"..
+			"image_button_exit[0,0;1,1;"..minetest.inventorycube(
+				tiles[1]..'^rubiks_four.png',
+				tiles[6]..'^rubiks_four.png',
+				tiles[3]..'^rubiks_four.png')..
+			";larger;]"..
+
+			"image_button_exit[0,1;1,1;"..minetest.inventorycube(
+				spawntex[1],
+				spawntex[6],
+				spawntex[3])..
+			";reset;]"..
+
 			--"image_button_exit[0,2;1,1;rubiks_scramble.png;scramble;]"..
-			--"image_button_exit[0,2;1,1;rubiks_smaller.png;smaller;]"..
-			"image_button_exit[0,2;1,1;"..cubetex[6]..";smaller;]"..
+			"image_button_exit[0,2;1,1;"..minetest.inventorycube(
+				tiles[1]..'^rubiks_two.png',
+				tiles[6]..'^rubiks_two.png',
+				tiles[3]..'^rubiks_two.png')..
+			";smaller;]"..
+
+			"image_button_exit[1,0;1,1;"..minetest.inventorycube(
+				spawntex[1],
+				spawntex[4],
+				spawntex[6])..
+			";L3;]"..
+
+			"image_button_exit[1,1;1,1;"..minetest.inventorycube(
+				spawntex[1],
+				tiles[6]..'^rubiks_with_orange.png^rubiks_three.png',
+				tiles[3]..'^rubiks_with_yellow.png^rubiks_three.png')..
+			";L1;]"..
+
+			"image_button_exit[1,2;1,1;"..minetest.inventorycube(
+				spawntex[1],
+				tiles[6]..'^rubiks_with_orange.png^rubiks_three.png^[transformR180',
+				tiles[3]..'^rubiks_with_yellow.png^rubiks_three.png^[transformR180')..
+			";L2;]"..
 			
-			"image_button_exit[1,0;1,1;rubiks_L3.png;L3;]"..
-			"image_button_exit[1,1;1,1;rubiks_L1.png;L1;]"..
-			"image_button_exit[1,2;1,1;rubiks_L2.png;L2;]"..
-			
-			"image_button_exit[2,0;1,1;rubiks_R3.png;R3;]"..
-			"image_button_exit[2,1;1,1;rubiks_R1.png;R1;]"..
-			"image_button_exit[2,2;1,1;rubiks_R2.png;R2;]"..
+			"image_button_exit[2,0;1,1;"..minetest.inventorycube(
+				spawntex[1],
+				spawntex[3],
+				spawntex[5])..
+			";R3;]"..
+
+			"image_button_exit[2,1;1,1;"..minetest.inventorycube(
+				spawntex[1],
+				tiles[6]..'^rubiks_with_red.png^rubiks_three.png',
+				tiles[3]..'^rubiks_with_white.png^rubiks_three.png')..
+			";R1;]"..
+
+			"image_button_exit[2,2;1,1;"..minetest.inventorycube(
+				spawntex[1],
+				tiles[6]..'^rubiks_with_red.png^rubiks_three.png^[transformR180',
+				tiles[3]..'^rubiks_with_white.png^rubiks_three.png^[transformR180')..
+				";R2;]"..
 		'')
 	end
 end
