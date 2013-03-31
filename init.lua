@@ -1,8 +1,3 @@
---[settings
-local UseBlackOutlinesOnCompressedCube = true
-local UseBlackOutlinesOnExpandedCube = false
---]
-
 --Okay, so we're making a Rubik's Cube!
 --Let's start with the basics.
 local colors = {
@@ -21,12 +16,8 @@ for color = 1, #colors do
 	materials[color] = 'wool:'..colors[color]
 	tiles[color] = 'wool_'..colors[color]..'.png'
 	spawntex[color] = tiles[color]
-	if UseBlackOutlinesOnCompressedCube then
-		spawntex[color] = spawntex[color]..'^rubiks_three.png'
-	end
-	if UseBlackOutlinesOnExpandedCube then
-		tiles[color] = tiles[color]..'^rubiks_outline.png'
-	end
+	spawntex[color] = spawntex[color]..'^rubiks_three.png'
+	tiles[color] = tiles[color]..'^rubiks_outline.png'
 end
 
 --is this the center of a face, on the edge, or is it a corner?
