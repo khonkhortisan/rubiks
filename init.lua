@@ -10,18 +10,18 @@ local colors = {
 }
 
 local materials = {} --what you craft the spawner with
-local tiles = {} --what is on the cubelets
+local tiles = {} --Base colors
 local spawntex = {} --what is on the spawner
+local cubetex = {} --what is on the cubelets
 for color = 1, #colors do
 	materials[color] = 'wool:'..colors[color]
 	tiles[color] = 'wool_'..colors[color]..'.png'
-	spawntex[color] = tiles[color]
-	spawntex[color] = spawntex[color]..'^rubiks_three.png'
-	tiles[color] = tiles[color]..'^rubiks_outline.png'
+	spawntex[color] = tiles[color]..'^rubiks_three.png'
+	cubetex[color] = tiles[color]..'^rubiks_outline.png'
 end
 
 --is this the center of a face, on the edge, or is it a corner?
-function get_axesoff(pos)
+local function get_axesoff(pos)
 	axesoff = 0
 	dir = {x=0, y=0, z=0}
 	center = {unpack(pos)}
@@ -41,7 +41,7 @@ end
 
 --this isn't in the cubelets' on_construct
 --because the meta already needs to be set
-function set_cubelet_formspec(pos, size)
+local function set_cubelet_formspec(pos, size)
 	axesoff, dir, center = get_axesoff(pos)
 	if axesoff == 1 then
 		local meta = minetest.env:get_meta(pos)
@@ -51,7 +51,8 @@ function set_cubelet_formspec(pos, size)
 			"image_button_exit[0,0;1,1;rubiks_larger.png;larger;]"..
 			"image_button_exit[0,1;1,1;rubiks_reset.png;reset;]"..
 			--"image_button_exit[0,2;1,1;rubiks_scramble.png;scramble;]"..
-			"image_button_exit[0,2;1,1;rubiks_smaller.png;smaller;]"..
+			--"image_button_exit[0,2;1,1;rubiks_smaller.png;smaller;]"..
+			"image_button_exit[0,2;1,1;"..cubetex[6]..";smaller;]"..
 			
 			"image_button_exit[1,0;1,1;rubiks_L3.png;L3;]"..
 			"image_button_exit[1,1;1,1;rubiks_L1.png;L1;]"..
@@ -64,7 +65,7 @@ function set_cubelet_formspec(pos, size)
 	end
 end
 
-function expand_cube(pos, spawn)
+local function expand_cube(pos, spawn)
 	for x = pos.x-1, pos.x+1 do
 	for y = pos.y-1, pos.y+1 do
 	for z = pos.z-1, pos.z+1 do
@@ -140,7 +141,7 @@ minetest.register_craft({
 	recipe = materials,
 })
 
-function rotate_cube(pos, dir, clockwise, layer)
+local function rotate_cube(pos, dir, clockwise, layer)
 	--save cube to rotate without losing data
 	cube = {}
 	for x = -1, 1 do cube[x] = {}
@@ -222,7 +223,7 @@ function rotate_cube(pos, dir, clockwise, layer)
 	end
 end
 
-function start_rotation(pos, clockwise, layer)
+local function start_rotation(pos, clockwise, layer)
 	axesoff, dir, center = get_axesoff(pos)
 	if axesoff == 1 then --center
 		if layer == 6 then
@@ -239,11 +240,11 @@ function start_rotation(pos, clockwise, layer)
 	end
 end
 
-function register_cubelets()
+local function register_cubelets()
 	minetest.register_node('rubiks:cubelet', {
 		description = "Rubik's Cubelet",
-		tiles = tiles,
-		inventory_image = minetest.inventorycube(tiles[1], tiles[6], tiles[3]),
+		tiles = cubetex,
+		inventory_image = minetest.inventorycube(cubetex[1], cubetex[6], cubetex[3]),
 		groups = {crumbly=2, not_in_creative_inventory = 1},
 		after_dig_node = function(pos, oldnode, oldmeta, digger)
 			local string = oldmeta.fields.cube_center
