@@ -369,7 +369,7 @@ function axisRotate(facedir, turnaxis, turnrot)
 		end
 	elseif turnaxis == 3 then --z
 		if 1 == axis or axis == 2 then
-			if axis == 4 then turnrot = -turnrot end
+			if axis == 2 then turnrot = -turnrot end
 			rot = (rot + turnrot) % 4
 		else
 			for r = 0, turnrot-1 do
