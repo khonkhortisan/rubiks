@@ -226,9 +226,11 @@ local function rotate_cube(pos, dir, clockwise, layer)
 		axes[2] = 1--x
 	end
 
+	sign = true
 	if dir.x == -1 or dir.y == -1 or dir.z == -1 then
 		clockwise = not clockwise
 		--still clockwise, just from the opposite perspective
+		sign = false
 	end
 
 	--start rotating
@@ -253,10 +255,14 @@ local function rotate_cube(pos, dir, clockwise, layer)
 			    if dir.x ~= 0 then turnaxis = 1
 			elseif dir.y ~= 0 then turnaxis = 2
 			else turnaxis = 3 end
+			--print(minetest.registered_nodes['rubiks:cubelet'].tiles[getface(loadcubelet.node.param2, turnaxis, negative)])
 			--place it
 			minetest.env:add_node(pos2, {name = name, param2 =
 				axisRotate(loadcubelet.node.param2, turnaxis, clockwise and 90 or -90)
 			})
+			--
+			--print(colors[getface(loadcubelet.node.param2, turnaxis, sign)])
+			--
 			local meta = minetest.env:get_meta(pos2)
 			meta:from_table(loadcubelet.meta)
 		end
@@ -345,12 +351,14 @@ function axisRotate(facedir, turnaxis, turnrot)
 			rot = (rot + turnrot) % 4
 		else
 			for r = 0, turnrot-1 do
-				    if  axis == 0 then	axis = 1
-				elseif  axis == 1 then	axis = 5
-							rot=rot+2
-				elseif  axis == 5 then	axis = 2
-							rot=rot-2
-				else--[[axis == 2 then]]axis = 0
+				    if axis == 0 then	axis = 1
+				elseif axis == 1 then	axis = 5
+							rot=(rot+2)%4
+				elseif axis == 5 then	axis = 2
+							rot=(rot-2)%4
+				elseif axis == 2 then	axis = 0
+				else
+					error("axisRotate: my bad")
 				end
 			end
 		end
@@ -360,10 +368,12 @@ function axisRotate(facedir, turnaxis, turnrot)
 			rot = (rot + turnrot) % 4
 		else
 			for r = 0, turnrot-1 do
-				    if  axis == 1 then	axis = 3
-				elseif  axis == 3 then	axis = 2
-				elseif  axis == 2 then	axis = 4
-				else--[[axis == 4 then]]axis = 1
+				    if axis == 1 then	axis = 3
+				elseif axis == 3 then	axis = 2
+				elseif axis == 2 then	axis = 4
+				elseif axis == 4 then	axis = 1
+				else
+					error("axisRotate: my bad")
 				end	rot = (rot + 1) % 4
 			end
 		end
@@ -373,13 +383,85 @@ function axisRotate(facedir, turnaxis, turnrot)
 			rot = (rot + turnrot) % 4
 		else
 			for r = 0, turnrot-1 do
-				    if  axis == 0 then	axis = 4
-				elseif  axis == 4 then	axis = 5
-				elseif  axis == 5 then	axis = 3
-				else--[[axis == 3 then]]axis = 0
+				    if axis == 0 then	axis = 4
+				elseif axis == 4 then	axis = 5
+				elseif axis == 5 then	axis = 3
+				elseif axis == 3 then	axis = 0
+				else
+					error("axisRotate: my bad")
 				end
 			end
 		end
+	else
+		error("axisRotate: turnaxis not 1-3")
 	end
-	return --[[facedir = ]] axis * 4 + rot
+	facedir = axis * 4 + rot
+	return facedir
+end
+local function rotfaces(faces, turnaxis, turnrot)
+	turnrot = turnrot % 4 
+	for r = 0, turnrot-1 do
+		    if turnaxis == 1 then --x
+			torot = {1, 5, 2, 6}
+		elseif turnaxis == 2 then --y
+			torot = {6, 4, 5, 3}
+		elseif turnaxis == 3 then --z
+			torot = {1, 4, 2, 3}
+		else
+			error("rotfaces: turnaxis: my bad")
+		end
+		     wraparound = faces[torot[3]]
+		faces[torot[3]] = faces[torot[2]]
+		faces[torot[2]] = faces[torot[1]]
+		faces[torot[1]] = wraparound
+	end
+	return faces
+end
+
+--untested
+function getfaces(facedir)
+	--FIXME?
+	--tiles		±Y±X±Z
+	--facedir axes	+Y±Z±X-Y
+	
+	axis = math.floor(facedir / 4)
+	rot = facedir % 4
+
+	--      +Y -Y +X -X +Z -Z
+	faces = {1, 2, 3, 4, 5, 6}
+	    if axis == 0 then -- +Y
+		turnaxis = 2
+	elseif axis == 1 then -- +Z
+		faces = rotfaces(faces, 1, 1) -- +X
+		turnaxis = 3
+	elseif axis == 2 then -- -Z
+		faces = rotfaces(faces, 1, -1) -- -X
+		turnaxis = 3
+		rot = -rot
+	elseif axis == 3 then -- +X
+		faces = rotfaces(faces, 3, -1) -- -Z
+		turnaxis = 1
+	elseif axis == 4 then -- -X
+		faces = rotfaces(faces, 3, 1) -- +Z
+		turnaxis = 1
+		rot = -rot
+	elseif axis == 5 then -- -Y
+		faces = rotfaces(faces, 3, 2)-- ±Z
+		turnaxis = 2
+		rot = -rot
+	else
+		error("getfaces: bad facedir: "..facedir..' '..axis..' '..rot)
+	end
+	return rotfaces(faces, turnaxis, rot)
+end
+
+function getface(facedir, axis, sign)
+	faces = getfaces(facedir)
+	return faces[
+		axis == 1 and (sign and 3 or 4) or (
+			axis == 2 and (sign and 1 or 2) or (
+				axis == 3 and (sign and 5 or 6)
+			)
+		)
+	]
 end
