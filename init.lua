@@ -341,6 +341,12 @@ for rotations = 1, 6 do
 	minetest.register_alias('rubiks:cubelet'..rotations, 'rubiks:cubelet')
 end
 
+--Stealable Code
+--You may edit this for coding style
+--Do not use this in your mod. This is for sharing only.
+--Put this somewhere where all modders can get to it
+-------------------------------------------------------------------------------
+
 function axisRotate(facedir, turnaxis, turnrot)
 	turnrot = math.floor(turnrot / 90) % 4
 	axis = math.floor(facedir / 4)
@@ -418,7 +424,6 @@ local function rotfaces(faces, turnaxis, turnrot)
 	return faces
 end
 
---untested
 function getfaces(facedir)
 	--FIXME?
 	--tiles		±Y±X±Z
